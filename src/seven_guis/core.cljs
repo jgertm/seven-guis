@@ -107,13 +107,38 @@
            [:div @message]])))))
 
 ;; -------------------------
+;; Timer
+
+(defn timer []
+  (let [elapsed  (r/atom 0)
+        max      (r/atom 100)
+        interval (js/setInterval #(when (< @elapsed @max) (swap! elapsed + 0.1)) 100)]
+    (r/create-class
+      {:component-will-unmount
+       #(js/clearInterval interval)
+       :reagent-render
+       (fn []
+         [:div {:style {:display :flex :flex-direction :column :width 200}}
+          [:h2 "Timer"]
+          [:progress {:value @elapsed
+                      :max   @max}]
+          [:div (gstring/format "%.2fs" @elapsed)]
+          [:input {:type      "range"
+                   :value     @max
+                   :min       0
+                   :max       200
+                   :on-change #(reset! max (-> % .-target .-value))}]
+          [:button {:on-click #(reset! elapsed 0)} "Reset"]])})))
+
+;; -------------------------
 ;; Views
 
 (defn home-page []
   [:div [:h1 "The Seven GUIs"]
    [counter]
    [temperature-converter]
-   [flight-booker]])
+   [flight-booker]
+   [timer]])
 
 ;; -------------------------
 ;; Initialize app
