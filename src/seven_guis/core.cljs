@@ -1,7 +1,8 @@
 (ns seven-guis.core
-    (:require
-      [reagent.core :as r]
-      [reagent.dom :as d]))
+  (:require [goog.string :as gstring]
+            [goog.string.format]
+            [reagent.core :as r]
+            [reagent.dom :as d]))
 
 ;; -------------------------
 ;; Counter
@@ -52,12 +53,67 @@
        " Fahrenheit"])))
 
 ;; -------------------------
+;; Flight booker
+
+(defn flight-booker []
+  (let [today          (-> (js/Date.now) js/Date. .toLocaleDateString)
+        mode           (r/atom :one-way)
+        departure-date (r/atom today)
+        return-date    (r/atom today)
+        message        (r/atom nil)]
+    (letfn [(date? [date] (-> date js/Date. .valueOf js/Number.isNaN (not)))
+            (update-date [date event]
+              (let [value (-> event .-target .-value)]
+                (reset! date value)))
+            (date-field
+              ([atom] (date-field {} atom))
+              ([properties atom]
+               [:input (apply merge
+                         {:type      "text"
+                          :value     @atom
+                          :on-change #(update-date atom %)}
+                         (when-not (date? @atom)
+                           {:style {:color :red}})
+                         properties)]))]
+      (fn []
+        (let [button-active?
+              (and
+                (date? @departure-date)
+                (if (= :return @mode) 
+                  (and (date? @return-date)
+                       (<= (js/Date. (js/Date.parse @departure-date))
+                         (js/Date. (js/Date.parse @return-date))))
+                  true))]
+          [:div {:style {:display        :flex
+                         :flex-direction :column
+                         :width          200}}
+           [:h2 "Flight Booker"]
+           [:select {:on-change #(reset! mode (-> % .-target .-value (keyword)))}
+            [:option {:value :one-way} "one-way flight"]
+            [:option {:value :return} "return flight"]]
+           [date-field departure-date]
+           [date-field {:disabled (not= :return @mode)} return-date]
+           [:button {:disabled (not button-active?)
+                     :on-click
+                     #(reset! message
+                        (case @mode
+                          :one-way (gstring/format
+                                     "You have booked a one-way flight on %s."
+                                     (.toLocaleDateString (js/Date. (js/Date.parse @departure-date))))
+                          :return  (gstring/format "You have booked a return flight departing on %s and returning on %s."
+                                     (.toLocaleDateString (js/Date. (js/Date.parse @departure-date)))
+                                     (.toLocaleDateString (js/Date. (js/Date.parse @departure-date))))))}
+            "Book"]
+           [:div @message]])))))
+
+;; -------------------------
 ;; Views
 
 (defn home-page []
   [:div [:h1 "The Seven GUIs"]
    [counter]
-   [temperature-converter]])
+   [temperature-converter]
+   [flight-booker]])
 
 ;; -------------------------
 ;; Initialize app
