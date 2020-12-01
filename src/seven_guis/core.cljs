@@ -1,6 +1,6 @@
 (ns seven-guis.core
-  (:require [goog.string :as gstring]
-            [goog.string.format]
+  (:require [clojure.string :as str]
+            [goog.string :as gstring]
             [reagent.core :as r]
             [reagent.dom :as d]))
 
@@ -131,6 +131,73 @@
           [:button {:on-click #(reset! elapsed 0)} "Reset"]])})))
 
 ;; -------------------------
+;; CRUD
+
+(defn- random-int []
+  ;; LOLJS
+  (js/Math.floor (* 1e6 (js/Math.random))))
+
+(def initial-db
+  (->> [{:surname "McCarthy" :name "John"}
+        {:surname "Hickey" :name "Rich"}
+        {:surname "Hamilton" :name "Margaret"}
+        {:surname "Mickens" :name "James"}]
+    (map #(let [id (random-int)]
+            (vector id (assoc % :id id))))
+    (into {})
+    (hash-map :data)))
+
+(defn crud []
+  (letfn [(create [person db]
+            (swap! db assoc-in [:data (random-int)] person))
+          (update [person db]
+            (swap! db assoc-in [:data (:id person)] person))
+          (delete [person db]
+            (swap! db clojure.core/update :data dissoc (:id person)))
+          (select [event db entry]
+            (let [value  (-> event .-target .-value (int))
+                  person (get (:data @db) value)]
+              (swap! db assoc :selection value)
+              (reset! entry person)))]
+    (let [db            (r/atom initial-db)
+          entry         (r/atom {})
+          filter-prefix (r/atom "")]
+      (fn []
+        (let [valid-selection? (contains? (:data @db) (:selection @db))]
+          [:div
+           [:h2 "CRUD"]
+           [:div "Filter prefix"
+            [:input {:type      :text
+                     :value     @filter-prefix
+                     :on-change #(reset! filter-prefix (-> % .-target .-value))}]]
+           [:div {:style {:display :flex}}
+            [:div
+             (->> @db
+               :data
+               (sort-by (comp :surname val))
+               (filter (fn [[_ {:keys [surname]}]] (str/starts-with? (str/lower-case surname) (str/lower-case @filter-prefix))))
+               (map (fn [[id {:keys [surname name]}]]
+                      [:option {:value (str id)} (gstring/format "%s, %s" surname name)]))
+               (into [:select {:size     8
+                               :style    {:width 200}
+                               :on-click #(select % db entry)}]))]
+            [:div  {:style {:display :flex :flex-direction :column}}
+             [:div
+              [:div "Name"]
+              [:input {:type      :text
+                       :value     (:name @entry)
+                       :on-change #(swap! entry assoc :name (-> % .-target .-value))}]]
+             [:div 
+              [:div "Surname"]
+              [:input {:type      :text
+                       :value     (:surname @entry)
+                       :on-change #(swap! entry assoc :surname (-> % .-target .-value))}]]]]
+           [:div {:style {:display :flex :flex-direction :row}}
+            [:button {:on-click #(create @entry db)} "Create"]
+            [:button {:disabled (not valid-selection?) :on-click #(update @entry db)} "Update"]
+            [:button {:disabled (not valid-selection?) :on-click #(delete @entry db)} "Delete"]]])))))
+
+;; -------------------------
 ;; Views
 
 (defn home-page []
@@ -138,7 +205,8 @@
    [counter]
    [temperature-converter]
    [flight-booker]
-   [timer]])
+   [timer]
+   [crud]])
 
 ;; -------------------------
 ;; Initialize app
