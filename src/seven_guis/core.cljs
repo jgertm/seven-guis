@@ -197,6 +197,57 @@
             [:button {:disabled (not valid-selection?) :on-click #(update @entry db)} "Update"]
             [:button {:disabled (not valid-selection?) :on-click #(delete @entry db)} "Delete"]]])))))
 
+(defn circle-drawer []
+  (letfn [(undo [{:keys [sequence point] :as operations}]
+            (assoc operations :point (min (inc point) (count sequence))))
+          (redo [{:keys [sequence point] :as operations}]
+            (assoc operations :point (max (dec point) 0)))]
+    (let [operations (r/atom {:sequence '()
+                              :point    0})]
+      (r/create-class
+        {:component-did-update
+         (fn []
+           (let [canvas (.getElementById js/document "circle-drawer")
+                 ctx    (.getContext canvas "2d")
+                 {:keys [sequence point]} @operations]
+             (.clearRect ctx 0 0 (.-width canvas) (.-height canvas))
+             (->> sequence
+               (drop point)
+               (reverse)
+               (run!
+                 (fn [operation]
+                   (case (first operation)
+                     :draw-circle
+                     (let [[_ x y r] operation]
+                       (doto ctx
+                         (.beginPath)
+                         (.arc
+                           (- x (.-offsetLeft canvas))
+                           (- y (.-offsetTop canvas))
+                           r
+                           0 (* 2 js/Math.PI) false)
+                         (.stroke)))))))))
+         :reagent-render
+         (fn []
+           (let []
+             [:div
+              [:h2 "Circle Drawer"]
+              [:div {:style {:display :flex}}
+               [:button {:on-click #(swap! operations undo)} "Undo"]
+               [:button {:on-click #(swap! operations redo)} "Redo"]]
+              [:canvas#circle-drawer
+               {:width    800
+                :height   640
+                :style    {:border "1px black solid"}
+                :on-click (fn [event]
+                            (let [x (.-pageX event)
+                                  y (.-pageY event)]
+                              (swap! operations
+                                #(-> %
+                                   (update :sequence (partial drop (:point %)))
+                                   (assoc :point 0)
+                                   (update :sequence conj [:draw-circle x y 50])))))}]]))}))))
+
 ;; -------------------------
 ;; Views
 
@@ -206,7 +257,8 @@
    [temperature-converter]
    [flight-booker]
    [timer]
-   [crud]])
+   [crud]
+   [circle-drawer]])
 
 ;; -------------------------
 ;; Initialize app
