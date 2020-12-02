@@ -256,7 +256,7 @@
   [:div [:h1 "The Seven GUIs"]
    [:p "Taken from "
     [:a {:href "https://eugenkiss.github.io/7guis/tasks/"}
-     "https://eugenkiss.github.io/7guis/tasks/"]]
+     "https://eugenkiss.github.io/7guis/tasks/"] "."]
    [counter]
    [temperature-converter]
    [flight-booker]
