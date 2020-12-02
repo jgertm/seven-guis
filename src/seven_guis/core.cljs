@@ -230,7 +230,7 @@
                          (.stroke)))))))))
          :reagent-render
          (fn []
-           (let []
+           (let [_ @operations]
              [:div
               [:h2 "Circle Drawer"]
               [:div {:style {:display :flex}}
