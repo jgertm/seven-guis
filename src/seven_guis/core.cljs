@@ -1,6 +1,7 @@
 (ns seven-guis.core
   (:require [clojure.string :as str]
             [goog.string :as gstring]
+            [goog.string.format]
             [reagent.core :as r]
             [reagent.dom :as d]))
 
