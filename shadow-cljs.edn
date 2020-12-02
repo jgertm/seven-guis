@@ -3,10 +3,10 @@
                 [nrepl "0.7.0"]
                 [reagent "0.10.0"]]
  :builds       {:app {:target     :browser
-                      :output-dir "public/js"
+                      :output-dir "docs/js"
                       :asset-path "/js"
                       :modules    {:app {:entries [seven-guis.core]}}
                       :devtools   {:after-load seven-guis.core/mount-root}}}
 
- :dev-http     {3000 {:root    "public"
+ :dev-http     {3000 {:root    "docs"
                       :handler user/app}}}
